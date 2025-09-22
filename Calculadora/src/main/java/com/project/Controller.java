@@ -28,23 +28,14 @@ public class Controller {
     }
 
     @FXML
-    private void actionAdd(ActionEvent event) {
-        setOperator("+");
-    }
-
-    @FXML
-    private void actionRest(ActionEvent event) {
-        setOperator("-");
-    }
-
-    @FXML
-    private void actionMulti(ActionEvent event) {
-        setOperator("*");
-    }
-
-    @FXML
-    private void actionDiv(ActionEvent event) {
-        setOperator("/");
+    private void handleOperator(ActionEvent event) {
+        Button clicked = (Button) event.getSource();
+        if (input.length() > 0) {
+            firstOperand = Double.parseDouble(input.toString());
+            operator = clicked.getText();
+            input.setLength(0);
+            textCounter.setText("");
+        }
     }
 
     @FXML
@@ -52,32 +43,31 @@ public class Controller {
         if (!operator.isEmpty() && input.length() > 0) {
             double secondOperand = Double.parseDouble(input.toString());
             double result = 0;
+
             switch (operator) {
-                case "+": result = firstOperand + secondOperand; break;
-                case "-": result = firstOperand - secondOperand; break;
-                case "*": result = firstOperand * secondOperand; break;
-                case "/": {
+                case "+": 
+                    result = firstOperand + secondOperand; 
+                    break;
+                case "-": 
+                    result = firstOperand - secondOperand; 
+                    break;
+                case "*": 
+                    result = firstOperand * secondOperand; 
+                    break;
+                case "/":
                     if (secondOperand != 0) {
                         result = firstOperand / secondOperand;
-                    } else {
-                        textCounter.setText("Error");
-                        return;
+                    }
+                    else { 
+                        textCounter.setText("Error"); 
+                        return; 
                     }
                     break;
-                }
             }
+            
             textCounter.setText(String.valueOf(result));
             input.setLength(0);
             operator = "";
-        }
-    }
-
-    private void setOperator(String op) {
-        if (input.length() > 0) {
-            firstOperand = Double.parseDouble(input.toString());
-            operator = op;
-            input.setLength(0);
-            textCounter.setText("");
         }
     }
 

@@ -19,14 +19,15 @@
          <children>
             <!-- Fila 1 -->
             <Button fx:id="buttonClear" onAction="#actionClear" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10; -fx-background-color: #ffcccc;" text="C" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-            <Button fx:id="buttonDiv" onAction="#actionDiv" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10; -fx-background-color: #e0e0ff;" text="/" GridPane.columnIndex="1" GridPane.rowIndex="0" />
-            <Button fx:id="buttonMulti" onAction="#actionMulti" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10; -fx-background-color: #e0e0ff;" text="*" GridPane.columnIndex="2" GridPane.rowIndex="0" />
-            <Button fx:id="buttonRest" onAction="#actionRest" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10; -fx-background-color: #e0e0ff;" text="-" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+            <Button fx:id="buttonDiv" onAction="#handleOperator" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10; -fx-background-color: #e0e0ff;" text="/" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+            <Button fx:id="buttonMulti" onAction="#handleOperator" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10; -fx-background-color: #e0e0ff;" text="*" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+            <Button fx:id="buttonRest" onAction="#handleOperator" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10; -fx-background-color: #e0e0ff;" text="-" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+
             <!-- Fila 2 -->
             <Button fx:id="num7" onAction="#actionNums" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10;" text="7" GridPane.columnIndex="0" GridPane.rowIndex="1" />
             <Button fx:id="num8" onAction="#actionNums" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10;" text="8" GridPane.columnIndex="1" GridPane.rowIndex="1" />
             <Button fx:id="num9" onAction="#actionNums" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10;" text="9" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-            <Button fx:id="buttonAdd" onAction="#actionAdd" prefHeight="55.0" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10; -fx-background-color: #e0e0ff;" text="+" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+            <Button fx:id="buttonAdd" onAction="#handleOperator" prefHeight="55.0" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10; -fx-background-color: #e0e0ff;" text="+" GridPane.columnIndex="3" GridPane.rowIndex="1" />
             <!-- Fila 3 -->
             <Button fx:id="num4" onAction="#actionNums" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10;" text="4" GridPane.rowIndex="2" />
             <Button fx:id="num5" onAction="#actionNums" prefHeight="55" prefWidth="65" style="-fx-font-size: 24px; -fx-background-radius: 10;" text="5" GridPane.columnIndex="1" GridPane.rowIndex="2" />

@@ -2,21 +2,16 @@ package com.project;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.control.Label;
 
 public class Controller1 {
 
     @FXML
-    private Button backButton;
-    @FXML
-    private AnchorPane container;
-    @FXML
-    private TextField msgText;
+    private Label msgText;
 
     public void setMessage() {
-        msgText.setText("Hola "+ Main.name + ", tens " + Main.age + " anys!");
+        // Default message, can be updated by other controllers
+        msgText.setText("Resposta: gràcies per el missatge!");
     }
 
     @FXML

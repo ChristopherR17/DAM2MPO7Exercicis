@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.project.Controller">
+
+    <!-- TextArea para chat -->
+    <TextArea fx:id="chatArea" editable="false" wrapText="true"
+              AnchorPane.topAnchor="10.0" AnchorPane.leftAnchor="10.0"
+              AnchorPane.rightAnchor="10.0" AnchorPane.bottomAnchor="200.0"/>
+
+    <!-- HBox con TextField y botones -->
+    <HBox spacing="5"
+          AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0"
+          AnchorPane.bottomAnchor="150.0">
+        <TextField fx:id="promptField" HBox.hgrow="ALWAYS" promptText="Enter your prompt"/>
+        <Button fx:id="sendTextBtn" text="Send Text"/>
+        <Button fx:id="sendImageBtn" text="Send Image"/>
+        <Button fx:id="cancelBtn" text="Cancel"/>
+    </HBox>
+
+    <!-- ImageView para vista previa de imagen -->
+    <ImageView fx:id="imageView" fitHeight="130" fitWidth="130" preserveRatio="true"
+               AnchorPane.leftAnchor="10.0" AnchorPane.bottomAnchor="10.0"/>
+
+    <!-- Label para estado -->
+    <Label fx:id="statusLabel"
+           AnchorPane.leftAnchor="150.0" AnchorPane.bottomAnchor="50.0"/>
+</AnchorPane>

@@ -1,52 +1,41 @@
 package com.project;
 
-import com.project.*;
-
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
-// Fes anar l'exemple amb:
-// ./run.sh com.project.Main
-// ./run.ps1 com.project.Main
-
 public class Main extends Application {
 
-    final int WINDOW_WIDTH = 300;
+    final int WINDOW_WIDTH = 600;
     final int WINDOW_HEIGHT = 400;
-
-    public static void main(String[] args) {
-        launch(args);
-    }
 
     @Override
     public void start(Stage stage) throws Exception {
 
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
-        UtilsViews.addView(getClass(), "ViewMain", "/assets/viewMain.fxml");
-        UtilsViews.addView(getClass(), "ViewCharacters", "/assets/viewCharacters.fxml");
-        UtilsViews.addView(getClass(), "ViewGames", "/assets/viewGames.fxml");
-        UtilsViews.addView(getClass(), "ViewConsoles", "/assets/viewConsoles.fxml");
-
-        UtilsViews.addView(getClass(), "ViewCharacter", "/assets/viewCharacter.fxml");
-        UtilsViews.addView(getClass(), "ViewGame", "/assets/viewGame.fxml");
-        UtilsViews.addView(getClass(), "ViewConsole", "/assets/viewConsole.fxml");
+        UtilsViews.addView(getClass(), "viewDesktop", "/assets/viewDesktop.fxml");
+        UtilsViews.addView(getClass(), "viewMobile0", "/assets/viewMobile0.fxml");
+        UtilsViews.addView(getClass(), "viewMobile1", "/assets/viewMobile1.fxml");
+        UtilsViews.addView(getClass(), "viewMobile2", "/assets/viewMobile2.fxml");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
 
         stage.setScene(scene);
-        stage.setTitle("Nintendo DB");
-        stage.setWidth(WINDOW_WIDTH);
-        stage.setHeight(WINDOW_HEIGHT);
+        stage.setTitle("Exercici02");
+        stage.setMinWidth(WINDOW_WIDTH);
+        stage.setMinHeight(WINDOW_HEIGHT);
+        
         stage.show();
 
-        // Afegeix una icona només si no és un Mac
+        // Add icon only if not Mac
         if (!System.getProperty("os.name").contains("Mac")) {
-            Image icon = new Image("file:icons/icon.png");
+            Image icon = new Image("file:/icons/icon.png");
             stage.getIcons().add(icon);
         }
+    }
+
+    public static void main(String[] args) {
+        launch(args);
     }
 }

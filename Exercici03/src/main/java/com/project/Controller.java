@@ -2,13 +2,12 @@ package com.project;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.fxml.Initializable;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
+import javafx.util.Callback;
 
 import java.io.*;
 import java.net.URI;
@@ -19,6 +18,8 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Base64;
+import java.util.ResourceBundle;
+import java.net.URL;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class Controller {
+public class Controller implements Initializable {
 
     @FXML
     private TextArea chatArea;
@@ -53,14 +54,13 @@ public class Controller {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private Future<?> streamReadingTask;
     private volatile boolean isFirst = false;
-    private CompletableFuture<Void> currentTask;
 
     // Models
     private static final String TEXT_MODEL   = "gemma3:1b";
     private static final String VISION_MODEL = "llava-phi3";
 
-    @FXML
-    public void initialize() {
+    @Override
+    public void initialize(URL url, ResourceBundle rb) {
         sendTextBtn.setOnAction(e -> sendText());
         sendImageBtn.setOnAction(e -> sendImage());
         cancelBtn.setOnAction(e -> cancelRequest());
@@ -76,21 +76,25 @@ public class Controller {
         promptField.clear();
         statusLabel.setText("Thinking...");
         isCancelled.set(false);
+        isFirst = true; // 👈 Reiniciamos isFirst
 
         ensureModelLoaded(TEXT_MODEL).whenComplete((v, err) -> {
             if (err != null) {
-                Platform.runLater(() -> statusLabel.setText("Error loading model."));
+                Platform.runLater(() -> {
+                    statusLabel.setText("Error loading model.");
+                    appendChat("Error: Could not load text model.");
+                });
                 return;
             }
-            executeTextRequest(TEXT_MODEL, prompt, true);
+            executeTextRequest(TEXT_MODEL, prompt);
         });
     }
 
-    private void executeTextRequest(String model, String prompt, boolean stream) {
+    private void executeTextRequest(String model, String prompt) {
         JSONObject body = new JSONObject()
                 .put("model", model)
                 .put("prompt", prompt)
-                .put("stream", stream)
+                .put("stream", true)
                 .put("keep_alive", "10m");
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -99,36 +103,20 @@ public class Controller {
                 .POST(BodyPublishers.ofString(body.toString()))
                 .build();
 
-        if (stream) {
-            isFirst = true;
-            streamRequest = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
-                    .thenApply(response -> {
-                        currentInputStream = response.body();
-                        streamReadingTask = executorService.submit(this::handleStreamResponse);
-                        return response;
-                    })
-                    .exceptionally(e -> {
-                        if (!isCancelled.get()) e.printStackTrace();
-                        Platform.runLater(this::setButtonsIdle);
-                        return null;
-                    });
-
-        } else {
-            completeRequest = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                    .thenApply(response -> {
-                        String text = safeExtractTextResponse(response.body());
-                        Platform.runLater(() -> {
-                            appendChat("Gemma3: " + text);
-                            statusLabel.setText("");
-                        });
-                        return response;
-                    })
-                    .exceptionally(e -> {
-                        if (!isCancelled.get()) e.printStackTrace();
-                        Platform.runLater(this::setButtonsIdle);
-                        return null;
-                    });
-        }
+        streamRequest = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
+                .thenApply(response -> {
+                    currentInputStream = response.body();
+                    streamReadingTask = executorService.submit(this::handleStreamResponse);
+                    return response;
+                })
+                .exceptionally(e -> {
+                    if (!isCancelled.get()) {
+                        e.printStackTrace();
+                        Platform.runLater(() -> appendChat("Error during text generation."));
+                    }
+                    Platform.runLater(this::setButtonsIdle);
+                    return null;
+                });
     }
 
     private void handleStreamResponse() {
@@ -144,18 +132,20 @@ public class Controller {
 
                 Platform.runLater(() -> {
                     if (isFirst) {
-                        appendChat("Gemma3: " + chunk);
+                        chatArea.appendText("Gemma3: " + chunk + "\n"); // 👈 Añadimos \n aquí
                         isFirst = false;
                     } else {
-                        chatArea.appendText(chunk);
+                        chatArea.appendText(chunk); // 👈 Sin modificar, preserva saltos internos
                     }
                 });
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            Platform.runLater(() -> appendChat("Error during streaming."));
+            if (!isCancelled.get()) {
+                e.printStackTrace();
+                Platform.runLater(() -> appendChat("Error during streaming."));
+            }
         } finally {
-            try { if (currentInputStream != null) currentInputStream.close(); } catch (Exception ignore) {}
+            cleanupStream();
             Platform.runLater(() -> statusLabel.setText(""));
         }
     }
@@ -178,17 +168,36 @@ public class Controller {
 
         final String base64 = Base64.getEncoder().encodeToString(bytes);
 
+        // 👇 Permitir al usuario añadir contexto textual (opcional)
+        String userPrompt = promptField.getText().trim();
+        if (userPrompt.isEmpty()) userPrompt = "Describe this image in detail.";
+
         appendChat("You sent an image");
+        promptField.clear(); // Limpiamos el campo para no confundir
         statusLabel.setText("Thinking...");
         isCancelled.set(false);
+        isFirst = true; // 👈 Reiniciamos isFirst
+
+        // 👇 Creamos variables efectivamente finales explícitamente
+        final String finalUserPrompt = userPrompt;
+        final String finalBase64 = base64;
 
         ensureModelLoaded(VISION_MODEL).whenComplete((v, err) -> {
             if (err != null) {
-                Platform.runLater(() -> statusLabel.setText("Error loading vision model."));
+                Platform.runLater(() -> {
+                    statusLabel.setText("Error loading vision model.");
+                    appendChat("Error: Could not load vision model.");
+                });
                 return;
             }
-            executeImageRequest(VISION_MODEL, "Describe this image", base64);
+            // 👇 Llamamos a un nuevo método para evitar captura de variables
+            onModelLoadedForImage(finalUserPrompt, finalBase64);
         });
+    }
+
+    // Nuevo método para manejar la lógica posterior
+    private void onModelLoadedForImage(String userPrompt, String base64) {
+        executeImageRequest(VISION_MODEL, userPrompt, base64);
     }
 
     private void executeImageRequest(String model, String prompt, String base64Image) {
@@ -215,8 +224,11 @@ public class Controller {
                     return resp;
                 })
                 .exceptionally(e -> {
-                    if (!isCancelled.get()) e.printStackTrace();
-                    Platform.runLater(() -> statusLabel.setText("Error during image request"));
+                    if (!isCancelled.get()) {
+                        e.printStackTrace();
+                        Platform.runLater(() -> appendChat("Error during image analysis."));
+                    }
+                    Platform.runLater(this::setButtonsIdle);
                     return null;
                 });
     }
@@ -226,6 +238,7 @@ public class Controller {
         isCancelled.set(true);
         cancelStreamRequest();
         cancelCompleteRequest();
+        isFirst = true; // 👈 Reiniciamos isFirst
         Platform.runLater(() -> statusLabel.setText("Cancelled"));
     }
 
@@ -240,7 +253,16 @@ public class Controller {
     private void cancelCompleteRequest() {
         if (completeRequest != null && !completeRequest.isDone()) {
             completeRequest.cancel(true);
+            Platform.runLater(() -> appendChat("Request cancelled."));
         }
+    }
+
+    private void cleanupStream() {
+        try { if (currentInputStream != null) currentInputStream.close(); } catch (Exception ignore) {}
+        currentInputStream = null;
+        streamReadingTask = null;
+        streamRequest = null;
+        isFirst = true; // 👈 Reiniciamos isFirst
     }
 
     // --- Utils ---
@@ -249,16 +271,21 @@ public class Controller {
     }
 
     private String safeExtractTextResponse(String bodyStr) {
+        if (bodyStr == null) return "(null)";
+        if (bodyStr.isBlank()) return "(empty)";
+
         try {
             JSONObject o = new JSONObject(bodyStr);
             String r = o.optString("response", null);
-            if (r != null && !r.isBlank()) return r;
+            if (r != null) return r; // 👈 Devuelve tal cual, sin trim
             if (o.has("message")) return o.optString("message");
             if (o.has("error")) return "Error: " + o.optString("error");
         } catch (Exception ignore) {}
-        return bodyStr != null && !bodyStr.isBlank() ? bodyStr : "(empty)";
+
+        return bodyStr; // 👈 Devuelve el cuerpo original sin modificar
     }
 
+    // --- Model Loading ---
     private CompletableFuture<Void> ensureModelLoaded(String modelName) {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:11434/api/ps"))
@@ -266,44 +293,60 @@ public class Controller {
                 .build();
 
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenCompose(resp -> {
-                    boolean loaded = false;
-                    try {
-                        JSONObject o = new JSONObject(resp.body());
-                        JSONArray models = o.optJSONArray("models");
-                        if (models != null) {
-                            for (int i = 0; i < models.length(); i++) {
-                                String name = models.getJSONObject(i).optString("name", "");
-                                String model = models.getJSONObject(i).optString("model", "");
-                                if (name.startsWith(modelName) || model.startsWith(modelName)) { loaded = true; break; }
-                            }
-                        }
-                    } catch (Exception ignore) {}
+                .thenCompose(resp -> handleModelCheckResponse(resp, modelName));
+    }
 
-                    if (loaded) return CompletableFuture.completedFuture(null);
+    private CompletableFuture<Void> handleModelCheckResponse(HttpResponse<String> resp, String modelName) {
+        boolean loaded = false;
+        try {
+            JSONObject o = new JSONObject(resp.body());
+            JSONArray models = o.optJSONArray("models");
+            if (models != null) {
+                for (int i = 0; i < models.length(); i++) {
+                    String name = models.getJSONObject(i).optString("name", "");
+                    String model = models.getJSONObject(i).optString("model", "");
+                    if (name.startsWith(modelName) || model.startsWith(modelName)) {
+                        loaded = true;
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Platform.runLater(() -> statusLabel.setText("Failed to check model status."));
+            return CompletableFuture.failedFuture(e);
+        }
 
-                    Platform.runLater(() -> statusLabel.setText("Loading model ..."));
+        if (loaded) {
+            return CompletableFuture.completedFuture(null);
+        }
 
-                    String preloadJson = new JSONObject()
-                            .put("model", modelName)
-                            .put("stream", false)
-                            .put("keep_alive", "10m")
-                            .toString();
+        Platform.runLater(() -> statusLabel.setText("Loading model..."));
 
-                    HttpRequest preloadReq = HttpRequest.newBuilder()
-                            .uri(URI.create("http://localhost:11434/api/generate"))
-                            .header("Content-Type", "application/json")
-                            .POST(BodyPublishers.ofString(preloadJson))
-                            .build();
+        String preloadJson = new JSONObject()
+                .put("model", modelName)
+                .put("stream", false)
+                .put("keep_alive", "10m")
+                .toString();
 
-                    return httpClient.sendAsync(preloadReq, HttpResponse.BodyHandlers.ofString())
-                            .thenAccept(r -> { /* warmed */ });
+        HttpRequest preloadReq = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:11434/api/generate"))
+                .header("Content-Type", "application/json")
+                .POST(BodyPublishers.ofString(preloadJson))
+                .build();
+
+        return httpClient.sendAsync(preloadReq, HttpResponse.BodyHandlers.ofString())
+                .thenAccept(r -> {
+                    Platform.runLater(() -> statusLabel.setText("Model ready."));
+                })
+                .exceptionally(e -> {
+                    Platform.runLater(() -> statusLabel.setText("Failed to load model."));
+                    return null;
                 });
     }
 
     private void setButtonsIdle() {
         sendTextBtn.setDisable(false);
         sendImageBtn.setDisable(false);
-        cancelBtn.setDisable(false);
+        cancelBtn.setDisable(true); // 👈 Deshabilitamos cancelBtn si no hay nada para cancelar
     }
 }

@@ -7,8 +7,8 @@ import javafx.stage.Stage;
 
 public class Main extends Application {
 
-    final int WINDOW_WIDTH = 600;
-    final int WINDOW_HEIGHT = 400;
+    final int WINDOW_WIDTH = 500;
+    final int WINDOW_HEIGHT = 300;
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -22,7 +22,7 @@ public class Main extends Application {
         Scene scene = new Scene(UtilsViews.parentContainer);
 
         stage.setScene(scene);
-        stage.setTitle("Exercici02");
+        stage.setTitle("Nintendo DB");
         stage.setMinWidth(WINDOW_WIDTH);
         stage.setMinHeight(WINDOW_HEIGHT);
         

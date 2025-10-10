@@ -72,7 +72,7 @@ public class Controller implements Initializable {
         String prompt = promptField.getText().trim();
         if (prompt.isEmpty()) return;
 
-        appendChat("You: " + prompt);
+        appendChat("You: " + prompt + "\n");
         promptField.clear();
         statusLabel.setText("Thinking...");
         isCancelled.set(false);
@@ -132,7 +132,7 @@ public class Controller implements Initializable {
 
                 Platform.runLater(() -> {
                     if (isFirst) {
-                        chatArea.appendText("Gemma3: " + chunk + "\n"); // 👈 Añadimos \n aquí
+                        chatArea.appendText("Gemma3: " + chunk ); // 👈 Añadimos \n aquí
                         isFirst = false;
                     } else {
                         chatArea.appendText(chunk); // 👈 Sin modificar, preserva saltos internos

@@ -9,11 +9,11 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Text?>
 
-<AnchorPane fx:id="rootPaneDesktop" prefHeight="700.0" prefWidth="1000.0" style="-fx-background-color: F6DED8;" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.project.ControllerDesktop">
+<AnchorPane fx:id="rootPaneDesktop" prefHeight="700.0" prefWidth="1000.0" style="-fx-background-color: #11c494;" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.project.ControllerDesktop">
    <children>
       <VBox AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <StackPane maxHeight="30" minHeight="30" prefHeight="30" style="-fx-background-color: B82132;">
+            <StackPane maxHeight="30" minHeight="30" prefHeight="30" style="-fx-background-color: #80f2d4;">
                <children>
                   <Text strokeType="OUTSIDE" strokeWidth="0.0" style="-fx-font-size: 20px; -fx-font-weight: bold;" text="Nintendo DB" />
                </children>
@@ -23,7 +23,7 @@
                   <Insets />
                </VBox.margin>
                <children>
-                  <VBox minWidth="200.0" prefWidth="200.0" style="-fx-background-color: F2B28C;">
+                  <VBox minWidth="200.0" prefWidth="200.0" style="-fx-background-color: #80f2d4;">
                      <children>
                         <ComboBox fx:id="comboBox" maxWidth="Infinity">
                            <VBox.margin>

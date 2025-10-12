@@ -194,7 +194,6 @@ public class ControllerMobile1 {
 
             // Añadir listener para que al hacer click se actualice la pantalla central
             itemTemplate.setOnMouseClicked(e -> {
-                System.out.println("holi");
                 // Preparar siguiente vista
                 ControllerMobile2 controllerMobile2 = (ControllerMobile2) UtilsViews.getController("viewMobile2");
                 controllerMobile2.updateMainScreen(game, urlImage);

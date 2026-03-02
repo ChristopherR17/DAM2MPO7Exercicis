@@ -76,7 +76,7 @@ public class Controller implements Initializable {
         promptField.clear();
         statusLabel.setText("Thinking...");
         isCancelled.set(false);
-        isFirst = true; // 👈 Reiniciamos isFirst
+        isFirst = true; 
 
         ensureModelLoaded(TEXT_MODEL).whenComplete((v, err) -> {
             if (err != null) {

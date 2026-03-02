@@ -5,7 +5,7 @@ public class Message {
 
     private final Sender sender;
     private final String text;
-    private final String avatarResource; // path like "/assets/ieti.png"
+    private final String avatarResource; 
 
     public Message(Sender sender, String text, String avatarResource) {
         this.sender = sender;

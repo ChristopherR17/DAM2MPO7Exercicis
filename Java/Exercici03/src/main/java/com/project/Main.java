@@ -1,8 +1,6 @@
 package com.project;
 
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
@@ -10,29 +8,31 @@ import javafx.stage.Stage;
 public class Main extends Application {
 
     final int WINDOW_WIDTH = 600;
-    final int WINDOW_HEIGHT = 500;
-
-    public static void main(String[] args) {
-        launch(args);
-    }
+    final int WINDOW_HEIGHT = 400;
 
     @Override
     public void start(Stage stage) throws Exception {
+
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
-        UtilsViews.addView(getClass(), "ViewLayout", "/assets/layout.fxml");
+        UtilsViews.addView(getClass(), "mainView", "/assets/layout.fxml");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
 
         stage.setScene(scene);
-        stage.setTitle("Ieti Xat");
-        stage.setWidth(WINDOW_WIDTH);
-        stage.setHeight(WINDOW_HEIGHT);
+        stage.setTitle("Exercici03 - IETI Chat");
+        stage.setMinWidth(WINDOW_WIDTH);
+        stage.setMinHeight(WINDOW_HEIGHT);
+        
         stage.show();
 
-        // Afegeix una icona només si no és un Mac
+        // Add icon only if not Mac
         if (!System.getProperty("os.name").contains("Mac")) {
-            Image icon = new Image("file:icons/icon.png");
+            Image icon = new Image("file:/icons/icon.png");
             stage.getIcons().add(icon);
         }
+    }
+
+    public static void main(String[] args) {
+        launch(args);
     }
 }

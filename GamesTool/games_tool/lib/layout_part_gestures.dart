@@ -18,6 +18,22 @@ extension _LayoutGestures on _LayoutState {
     appData.dragStartDetails = details;
     if (appData.selectedSection == "levels") {
       // Levels section is preview-only: always pan.
+    } else if (appData.selectedSection == "paths") {
+      _didModifyPathDuringGesture = false;
+      _isDraggingPathPoint = false;
+      _draggingPathPointIndex = -1;
+      if (_layersHandToolActive) {
+        return;
+      }
+      final int hitPointIndex = LayoutUtils.pathPointIndexFromPosition(
+        appData,
+        details.localPosition,
+      );
+      if (hitPointIndex != -1) {
+        appData.pushUndo();
+        _isDraggingPathPoint = true;
+        _draggingPathPointIndex = hitPointIndex;
+      }
     } else if (appData.selectedSection == "viewport") {
       _isDraggingViewport = false;
       _isResizingViewport = false;
@@ -362,6 +378,23 @@ extension _LayoutGestures on _LayoutState {
         appData.layersViewOffset += details.delta;
         appData.update();
       }
+    } else if (appData.selectedSection == "paths") {
+      if (!_isPointerDown) {
+        // scroll-triggered pan — ignore
+      } else if (_isDraggingPathPoint && _draggingPathPointIndex >= 0) {
+        final bool changed = LayoutUtils.dragSelectedPathPointFromCanvas(
+          appData,
+          pointIndex: _draggingPathPointIndex,
+          localPosition: details.localPosition,
+        );
+        if (changed) {
+          _didModifyPathDuringGesture = true;
+          appData.update();
+        }
+      } else if (_layersHandToolActive) {
+        appData.layersViewOffset += details.delta;
+        appData.update();
+      }
     } else if (appData.selectedSection == "viewport") {
       if (!_isPointerDown) {
         // scroll-triggered pan — ignore
@@ -593,6 +626,13 @@ extension _LayoutGestures on _LayoutState {
       _isPaintingTilemap = false;
       if (_didModifyTilemapDuringGesture) {
         _didModifyTilemapDuringGesture = false;
+        unawaited(_autoSaveIfPossible(appData));
+      }
+    } else if (appData.selectedSection == "paths") {
+      _isDraggingPathPoint = false;
+      _draggingPathPointIndex = -1;
+      if (_didModifyPathDuringGesture) {
+        _didModifyPathDuringGesture = false;
         unawaited(_autoSaveIfPossible(appData));
       }
     } else if (appData.selectedSection == "zones") {

@@ -59,11 +59,17 @@ extension _LayoutNavigation on _LayoutState {
         return;
       }
       final zone = level.zones[appData.selectedZone];
+      final String zoneName = zone.name.trim();
       final String zoneType = zone.type.trim();
+      final String displayName = zoneName.isNotEmpty
+          ? zoneName
+          : (zoneType.isNotEmpty
+              ? zoneType
+              : 'Zone ${appData.selectedZone + 1}');
       parts.add(
         MapEntry(
           'Zone',
-          zoneType.isEmpty ? 'Zone ${appData.selectedZone + 1}' : zoneType,
+          displayName,
         ),
       );
     }
@@ -110,6 +116,7 @@ extension _LayoutNavigation on _LayoutState {
 
     switch (appData.selectedSection) {
       case 'levels':
+      case 'paths':
       case 'viewport':
         addLevel();
         break;
@@ -230,6 +237,8 @@ extension _LayoutNavigation on _LayoutState {
         return LayoutAnimationRigs(key: layoutAnimationRigsKey);
       case 'sprites':
         return LayoutSprites(key: layoutSpritesKey);
+      case 'paths':
+        return const LayoutPaths();
       case 'viewport':
         return LayoutViewport(key: layoutViewportKey);
       case 'media':

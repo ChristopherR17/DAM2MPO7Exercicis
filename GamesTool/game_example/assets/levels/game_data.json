@@ -101,7 +101,8 @@
       "viewportPreviewColor": "pink",
       "backgroundColorHex": "#000000",
       "depthSensitivity": 0.08,
-      "zonesFile": "zones/level_000_zones.json"
+      "zonesFile": "zones/level_000_zones.json",
+      "pathsFile": "paths/level_000_paths.json"
     },
     {
       "name": "Sideworld",
@@ -504,7 +505,8 @@
       "viewportPreviewColor": "blue",
       "backgroundColorHex": "#10659C",
       "depthSensitivity": 0.08,
-      "zonesFile": "zones/level_001_zones.json"
+      "zonesFile": "zones/level_001_zones.json",
+      "pathsFile": "paths/level_001_paths.json"
     }
   ],
   "levelGroups": [

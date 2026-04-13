@@ -31,7 +31,6 @@ class Buscaminas {
     mostrarTrucos = false;
     
     generarMinas();
-    // Asegurar al menos 2 minas en cada cuadrante
     forzarMinasPorCuadrante();
   }
 
@@ -50,12 +49,6 @@ class Buscaminas {
   }
 
   void forzarMinasPorCuadrante() {
-    // Definir los 4 cuadrantes
-    // Cuadrante 1: [0,2] filas y [0,4] columnas
-    // Cuadrante 2: [0,2] filas y [5,9] columnas
-    // Cuadrante 3: [3,5] filas y [0,4] columnas
-    // Cuadrante 4: [3,5] filas y [5,9] columnas
-    
     // Contar minas en cada cuadrante
     Map<int, int> conteoMinas = {1: 0, 2: 0, 3: 0, 4: 0};
     

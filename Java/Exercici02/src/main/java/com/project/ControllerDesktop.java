@@ -181,7 +181,7 @@ public class ControllerDesktop {
             // Extraer información necesaria del JSON
             String name = game.getString("name");
 
-            // Carregar el template de 'listItem.fxml'
+            // Carga el template de 'listItem.fxml'
             FXMLLoader loader = new FXMLLoader(resource);
             Parent itemTemplate = loader.load();
             ControllerListItem itemController = loader.getController();

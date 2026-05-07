@@ -6,60 +6,66 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="500.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.project.Controller">
-   <children>
-      <VBox AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-         <children>
-            <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS">
-               <content>
-                  <VBox fx:id="messagesBox" fillWidth="true" spacing="10">
-                     <padding>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                     </padding>
-                  </VBox>
-               </content>
-            </ScrollPane>
-            
-            <!-- Thinking indicator -->
-            <Label fx:id="thinkingLabel" text="Thinking..." style="-fx-text-fill: blue; -fx-font-weight: bold; -fx-padding: 5;" visible="false" managed="false" />
-            
-            <!-- Image preview -->
-            <HBox fx:id="imagePreviewBox" spacing="10" alignment="CENTER_LEFT" style="-fx-padding: 5; -fx-background-color: #f5f5f5;">
-               <children>
-                  <Label text="Imatge seleccionada:" />
-                  <ImageView fx:id="imagePreview" fitHeight="80" fitWidth="80" preserveRatio="true" />
-                  <Button text="X" onAction="#resetImageAttributes" styleClass="icon-button" />
-               </children>
+<BorderPane prefHeight="640.0" prefWidth="780.0"
+            stylesheets="@style.css"
+            styleClass="app-shell"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.project.Controller">
+
+    <top>
+        <VBox spacing="4" styleClass="header">
+            <padding>
+                <Insets top="16" right="18" bottom="14" left="18" />
+            </padding>
+            <Label text="Xat IETI" styleClass="title" />
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fx:id="scrollPane" fitToWidth="true" hbarPolicy="NEVER" styleClass="chat-scroll">
+            <content>
+                <VBox fx:id="messagesBox" fillWidth="true" spacing="12" styleClass="messages-box">
+                    <padding>
+                        <Insets top="18" right="18" bottom="18" left="18" />
+                    </padding>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <VBox spacing="10" styleClass="input-area">
+            <padding>
+                <Insets top="12" right="16" bottom="16" left="16" />
+            </padding>
+
+            <Label fx:id="thinkingLabel" text="Pensant..." styleClass="thinking" visible="false" managed="false" />
+
+            <HBox fx:id="imagePreviewBox" alignment="CENTER_LEFT" spacing="10" styleClass="preview-box" visible="false" managed="false">
+                <padding>
+                    <Insets top="8" right="10" bottom="8" left="10" />
+                </padding>
+                <Label text="Imatge:" styleClass="preview-title" />
+                <ImageView fx:id="imagePreview" fitHeight="64" fitWidth="64" preserveRatio="true" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Button text="✕" onAction="#clearImage" styleClass="icon-button" />
             </HBox>
-            
-            <HBox styleClass="input-bar" spacing="5" alignment="CENTER">
-               <children>
-                  <Button fx:id="buttonPicture" onAction="#loadImage" styleClass="icon-button">
-                     <graphic>
-                        <ImageView fitHeight="20" fitWidth="20" preserveRatio="true" />
-                     </graphic>
-                  </Button>
-                  <TextField fx:id="textFieldPrompt" styleClass="text-field" promptText="Escriu el teu missatge..." HBox.hgrow="ALWAYS" />
-                  <Button fx:id="buttonSendRequest" mnemonicParsing="false" onAction="#sendRequest" styleClass="icon-button">
-                     <graphic>
-                        <ImageView fitHeight="20" fitWidth="20" preserveRatio="true" />
-                     </graphic>
-                  </Button>
-                  <Button fx:id="buttonBreak" mnemonicParsing="false" onAction="#callBreak" styleClass="icon-button">
-                     <graphic>
-                        <ImageView fitHeight="20" fitWidth="20" preserveRatio="true" />
-                     </graphic>
-                  </Button>
-               </children>
-               <padding>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               </padding>
+
+            <HBox alignment="CENTER" spacing="8" styleClass="input-bar">
+                <padding>
+                    <Insets top="6" right="8" bottom="6" left="8" />
+                </padding>
+                <Button fx:id="buttonPicture" text="📎" onAction="#loadImage" styleClass="icon-button" />
+                <TextField fx:id="textFieldPrompt" promptText="Escriu el teu missatge..." HBox.hgrow="ALWAYS" styleClass="prompt-field" />
+                <Button fx:id="buttonSendRequest" text="➤" mnemonicParsing="false" onAction="#sendRequest" styleClass="icon-button" />
+                <Button fx:id="buttonBreak" text="■" mnemonicParsing="false" onAction="#callBreak" styleClass="icon-button stop-button" />
             </HBox>
-         </children>
-      </VBox>
-   </children>
-</AnchorPane>
+        </VBox>
+    </bottom>
+</BorderPane>

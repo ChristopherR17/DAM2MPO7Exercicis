@@ -7,13 +7,12 @@ import javafx.stage.Stage;
 
 public class Main extends Application {
 
-    final int WINDOW_WIDTH = 600;
-    final int WINDOW_HEIGHT = 400;
+    final int WINDOW_WIDTH = 780;
+    final int WINDOW_HEIGHT = 640;
 
     @Override
     public void start(Stage stage) throws Exception {
 
-        UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
         UtilsViews.addView(getClass(), "mainView", "/assets/layout.fxml");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
@@ -25,11 +24,11 @@ public class Main extends Application {
         
         stage.show();
 
-        // Add icon only if not Mac
-        if (!System.getProperty("os.name").contains("Mac")) {
-            Image icon = new Image("file:/icons/icon.png");
-            stage.getIcons().add(icon);
-        }
+        // Icono opcional: solo se carga si existe en resources.
+        try {
+            Image icon = new Image(getClass().getResourceAsStream("/icons/icon.png"));
+            if (!icon.isError()) stage.getIcons().add(icon);
+        } catch (Exception ignored) {}
     }
 
     public static void main(String[] args) {

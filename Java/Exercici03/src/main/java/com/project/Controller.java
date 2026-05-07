@@ -27,6 +27,7 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -35,13 +36,13 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 public class Controller implements Initializable {
 
-    // Models
-    private static final String TEXT_MODEL   = "gemma3:1b";
+    private static final String TEXT_MODEL = "gemma3:1b";
     private static final String VISION_MODEL = "llava-phi3";
 
     @FXML private Button buttonSendRequest;
@@ -49,11 +50,10 @@ public class Controller implements Initializable {
     @FXML private Button buttonPicture;
     @FXML private TextField textFieldPrompt;
     @FXML private VBox messagesBox;
+    @FXML private ScrollPane scrollPane;
     @FXML private HBox imagePreviewBox;
     @FXML private ImageView imagePreview;
     @FXML private Label thinkingLabel;
-    
-    // No cal textInfo perquè utilitzem messagesBox
 
     private boolean imageLoaded;
     private String base64Image;
@@ -66,68 +66,52 @@ public class Controller implements Initializable {
     private InputStream currentInputStream;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private Future<?> streamReadingTask;
-    private volatile boolean isFirst = false;
-    
-    private ScrollPane scrollPane; // Necessitarem això per fer scroll automàtic
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         setButtonsIdle();
         resetImageAttributes();
-        
-        // Obtenir referència al ScrollPane (és el pare del messagesBox)
-        if (messagesBox != null && messagesBox.getParent() != null) {
-            scrollPane = (ScrollPane) messagesBox.getParent().getParent();
-        }
-        
-        // Amagar el preview de la imatge inicialment
-        if (imagePreviewBox != null) {
-            imagePreviewBox.setVisible(false);
-            imagePreviewBox.setManaged(false);
-        }
-        
-        // Amagar el thinking label inicialment
-        if (thinkingLabel != null) {
-            thinkingLabel.setVisible(false);
-        }
+        setImagePreviewVisible(false);
+        setThinking(false);
 
         textFieldPrompt.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER) {
+            if (event.getCode() == KeyCode.ENTER && !buttonSendRequest.isDisabled()) {
                 buttonSendRequest.fire();
             }
         });
     }
 
-    // --- UI actions ---
+    @FXML
+    private void sendRequest(ActionEvent event) {
+        if (imageLoaded) {
+            callPicture(event);
+        } else {
+            callStream(event);
+        }
+    }
 
     @FXML
     private void callStream(ActionEvent event) {
-        String prompt = getPrompt();
+        String prompt = getPrompt().trim();
         if (prompt.isEmpty()) {
             appendSystemMessage("Si us plau, escriu un missatge.");
             return;
         }
-        
-        // Mostrar missatge de l'usuari
+
         appendUserMessage(prompt);
-        
-        // BUIDAR EL TEXTFIELD - Això és important!
-        Platform.runLater(() -> {
-            textFieldPrompt.clear();
-        });
-        
+        textFieldPrompt.clear();
         setButtonsRunning();
         isCancelled.set(false);
 
         ensureModelLoaded(TEXT_MODEL).whenComplete((v, err) -> {
             if (err != null) {
-                Platform.runLater(() -> { 
-                    appendSystemMessage("Error loading model: " + err.getMessage()); 
-                    setButtonsIdle(); 
+                Platform.runLater(() -> {
+                    appendSystemMessage("Error carregant el model: " + err.getMessage());
+                    setButtonsIdle();
                 });
                 return;
             }
-            executeTextRequest(TEXT_MODEL, "Responde en español: "+prompt, true);
+            executeTextRequest(TEXT_MODEL, "Responde en español: " + prompt, true);
         });
     }
 
@@ -135,52 +119,31 @@ public class Controller implements Initializable {
     private void callPicture(ActionEvent event) {
         if (!imageLoaded || base64Image == null) {
             appendSystemMessage("Primer has de seleccionar una imatge.");
-            setButtonsIdle();
             return;
         }
-        
-        String prompt = getPrompt();
-        if (prompt.isEmpty()) {
-            prompt = "Describe this image";
-        }
-        
-        final String finalPrompt = prompt;
-        
-        // Mostrar missatge de l'usuari amb la imatge
-        appendUserMessageWithImage(finalPrompt, selectedImageFile);
-        
-        // BUIDAR EL TEXTFIELD
-        Platform.runLater(() -> {
-            textFieldPrompt.clear();
-        });
-        
-        setButtonsRunning();
-        isCancelled.set(false);
-        
-        // Mostrar "Thinking..."
-        if (thinkingLabel != null) {
-            Platform.runLater(() -> thinkingLabel.setVisible(true));
-        }
 
+        String prompt = getPrompt().trim();
+        if (prompt.isEmpty()) prompt = "Describe this image";
+
+        appendUserMessageWithImage(prompt, selectedImageFile);
+        textFieldPrompt.clear();
+        setButtonsRunning();
+        setThinking(true);
+        isCancelled.set(false);
+
+        final String finalPrompt = prompt;
         ensureModelLoaded(VISION_MODEL).whenComplete((v, err) -> {
             if (err != null) {
-                Platform.runLater(() -> { 
-                    appendSystemMessage("Error loading model: " + err.getMessage()); 
+                Platform.runLater(() -> {
+                    appendSystemMessage("Error carregant el model: " + err.getMessage());
+                    setThinking(false);
                     setButtonsIdle();
-                    if (thinkingLabel != null) thinkingLabel.setVisible(false);
                 });
                 return;
             }
-            executeImageRequest(VISION_MODEL, "Responde en español: "+finalPrompt, base64Image);
-            
-            // Netejar la imatge després d'enviar
-            Platform.runLater(() -> {
-                resetImageAttributes();
-                if (imagePreviewBox != null) {
-                    imagePreviewBox.setVisible(false);
-                    imagePreviewBox.setManaged(false);
-                }
-            });
+
+            executeImageRequest(VISION_MODEL, "Responde en español: " + finalPrompt, base64Image);
+            Platform.runLater(this::clearImage);
         });
     }
 
@@ -191,15 +154,11 @@ public class Controller implements Initializable {
         cancelCompleteRequest();
         Platform.runLater(() -> {
             appendSystemMessage("Petició aturada per l'usuari.");
+            setThinking(false);
             setButtonsIdle();
-            resetImageAttributes();
-            if (thinkingLabel != null) thinkingLabel.setVisible(false);
         });
     }
 
-    // --- Request helpers ---
-
-    // Text-only (stream or not)
     private void executeTextRequest(String model, String prompt, boolean stream) {
         JSONObject body = new JSONObject()
             .put("model", model)
@@ -213,55 +172,23 @@ public class Controller implements Initializable {
             .POST(BodyPublishers.ofString(body.toString()))
             .build();
 
-        if (stream) {
-            Platform.runLater(() -> {
-                appendAssistantMessage(""); // Preparar per streaming
+        Platform.runLater(() -> appendAssistantMessage(""));
+
+        streamRequest = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
+            .thenApply(response -> {
+                currentInputStream = response.body();
+                streamReadingTask = executorService.submit(this::handleStreamResponse);
+                return response;
+            })
+            .exceptionally(e -> {
+                if (!isCancelled.get()) {
+                    Platform.runLater(() -> appendSystemMessage("Error en la connexió: " + e.getMessage()));
+                }
+                Platform.runLater(this::setButtonsIdle);
+                return null;
             });
-            isFirst = true;
-
-            streamRequest = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
-                .thenApply(response -> {
-                    currentInputStream = response.body();
-                    streamReadingTask = executorService.submit(() -> handleStreamResponse());
-                    return response;
-                })
-                .exceptionally(e -> {
-                    if (!isCancelled.get()) {
-                        e.printStackTrace();
-                        Platform.runLater(() -> {
-                            appendSystemMessage("Error en la connexió: " + e.getMessage());
-                        });
-                    }
-                    Platform.runLater(this::setButtonsIdle);
-                    return null;
-                });
-
-        } else {
-            appendSystemMessage("Espera resposta completa...");
-
-            completeRequest = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> {
-                    String responseText = safeExtractTextResponse(response.body());
-                    Platform.runLater(() -> { 
-                        appendAssistantMessage(responseText);
-                        setButtonsIdle(); 
-                    });
-                    return response;
-                })
-                .exceptionally(e -> {
-                    if (!isCancelled.get()) {
-                        e.printStackTrace();
-                        Platform.runLater(() -> {
-                            appendSystemMessage("Error: " + e.getMessage());
-                        });
-                    }
-                    Platform.runLater(this::setButtonsIdle);
-                    return null;
-                });
-        }
     }
 
-    // Image + prompt (non-stream) using vision model
     private void executeImageRequest(String model, String prompt, String base64Image) {
         JSONObject body = new JSONObject()
             .put("model", model)
@@ -271,8 +198,7 @@ public class Controller implements Initializable {
             .put("keep_alive", "10m")
             .put("options", new JSONObject()
                 .put("num_ctx", 2048)
-                .put("num_predict", 256)
-            );
+                .put("num_predict", 256));
 
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create("http://localhost:11434/api/generate"))
@@ -282,39 +208,36 @@ public class Controller implements Initializable {
 
         completeRequest = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(resp -> {
-                int code = resp.statusCode();
-                String bodyStr = resp.body();
-
-                String msg = tryParseAnyMessage(bodyStr);
+                String msg = tryParseAnyMessage(resp.body());
                 if (msg == null || msg.isBlank()) {
-                    msg = (code >= 200 && code < 300) ? "(empty response)" : "HTTP " + code + ": " + bodyStr;
+                    msg = resp.statusCode() >= 200 && resp.statusCode() < 300
+                        ? "(resposta buida)"
+                        : "HTTP " + resp.statusCode() + ": " + resp.body();
                 }
 
                 final String toShow = msg;
-                Platform.runLater(() -> { 
+                Platform.runLater(() -> {
                     appendAssistantMessage(toShow);
-                    if (thinkingLabel != null) thinkingLabel.setVisible(false);
-                    setButtonsIdle(); 
+                    setThinking(false);
+                    setButtonsIdle();
                 });
                 return resp;
             })
             .exceptionally(e -> {
                 if (!isCancelled.get()) {
-                    e.printStackTrace();
-                    Platform.runLater(() -> {
-                        appendSystemMessage("Error en la petició: " + e.getMessage());
-                        if (thinkingLabel != null) thinkingLabel.setVisible(false);
-                    });
+                    Platform.runLater(() -> appendSystemMessage("Error en la petició: " + e.getMessage()));
                 }
-                Platform.runLater(() -> setButtonsIdle());
+                Platform.runLater(() -> {
+                    setThinking(false);
+                    setButtonsIdle();
+                });
                 return null;
             });
     }
 
-    // Stream reader for text responses
     private void handleStreamResponse() {
         StringBuilder fullResponse = new StringBuilder();
-        
+
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(currentInputStream, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -326,53 +249,47 @@ public class Controller implements Initializable {
                 if (chunk.isEmpty()) continue;
 
                 fullResponse.append(chunk);
-                
-                final String currentResponse = fullResponse.toString();
-                
-                Platform.runLater(() -> {
-                    updateLastAssistantMessage(currentResponse);
-                });
+                String currentResponse = fullResponse.toString();
+                Platform.runLater(() -> updateLastAssistantMessage(currentResponse));
             }
         } catch (Exception e) {
             if (!isCancelled.get()) {
-                e.printStackTrace();
-                Platform.runLater(() -> {
-                    appendSystemMessage("Error durant el streaming: " + e.getMessage());
-                });
+                Platform.runLater(() -> appendSystemMessage("Error durant el streaming: " + e.getMessage()));
             }
         } finally {
-            try { 
-                if (currentInputStream != null) currentInputStream.close(); 
-            } catch (Exception ignore) {}
+            try {
+                if (currentInputStream != null) currentInputStream.close();
+            } catch (Exception ignored) {}
             Platform.runLater(this::setButtonsIdle);
         }
     }
 
-    // --- UI Helpers ---
+    private Label createBubble(String author, String message, boolean user) {
+        Label label = new Label(author + "\n" + message);
+        label.setWrapText(true);
+        label.setMaxWidth(520);
+        label.setMinHeight(Region.USE_PREF_SIZE);
+        label.setStyle(user
+            ? "-fx-background-color: #e0f2fe; -fx-padding: 12; -fx-background-radius: 16; -fx-border-radius: 16; -fx-text-fill: #0f172a; -fx-font-size: 13px;"
+            : "-fx-background-color: #ffffff; -fx-padding: 12; -fx-background-radius: 16; -fx-border-radius: 16; -fx-border-color: #e5e7eb; -fx-text-fill: #111827; -fx-font-size: 13px;"
+        );
+        return label;
+    }
 
     private void appendUserMessage(String message) {
-        Label userLabel = new Label("👤 Usuari: " + message);
-        userLabel.setStyle("-fx-background-color: #e3f2fd; -fx-padding: 8; -fx-background-radius: 10;");
-        userLabel.setWrapText(true);
-        userLabel.setMaxWidth(400);
-        
-        Platform.runLater(() -> {
-            messagesBox.getChildren().add(userLabel);
-            scrollToBottom();
-        });
+        addMessage(createBubble("👤 Usuari", message, true));
     }
 
     private void appendUserMessageWithImage(String message, File imageFile) {
-        VBox userBox = new VBox(5);
-        userBox.setStyle("-fx-background-color: #e3f2fd; -fx-padding: 8; -fx-background-radius: 10;");
-        userBox.setMaxWidth(400);
-        
-        if (message != null && !message.isEmpty()) {
-            Label userLabel = new Label("👤 Usuari: " + message);
-            userLabel.setWrapText(true);
-            userBox.getChildren().add(userLabel);
-        }
-        
+        VBox userBox = new VBox(8);
+        userBox.setMaxWidth(520);
+        userBox.setStyle("-fx-background-color: #e0f2fe; -fx-padding: 12; -fx-background-radius: 16; -fx-border-radius: 16;");
+
+        Label userLabel = new Label("👤 Usuari\n" + message);
+        userLabel.setWrapText(true);
+        userLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #0f172a;");
+        userBox.getChildren().add(userLabel);
+
         if (imageFile != null && imageFile.exists()) {
             ImageView imgView = new ImageView(new Image(imageFile.toURI().toString()));
             imgView.setFitHeight(150);
@@ -380,103 +297,67 @@ public class Controller implements Initializable {
             imgView.setPreserveRatio(true);
             userBox.getChildren().add(imgView);
         }
-        
-        Platform.runLater(() -> {
-            messagesBox.getChildren().add(userBox);
-            scrollToBottom();
-        });
+
+        addMessage(userBox);
     }
 
     private void appendAssistantMessage(String message) {
-        Label assistantLabel = new Label("🤖 Assistent: " + message);
-        assistantLabel.setStyle("-fx-background-color: #f1f8e9; -fx-padding: 8; -fx-background-radius: 10;");
-        assistantLabel.setWrapText(true);
-        assistantLabel.setMaxWidth(400);
-        
-        Platform.runLater(() -> {
-            messagesBox.getChildren().add(assistantLabel);
-            scrollToBottom();
-        });
+        addMessage(createBubble("🤖 Assistent", message, false));
     }
 
     private void updateLastAssistantMessage(String message) {
         if (!messagesBox.getChildren().isEmpty()) {
-            var lastNode = messagesBox.getChildren().get(messagesBox.getChildren().size() - 1);
-            if (lastNode instanceof Label) {
-                Label lastLabel = (Label) lastNode;
-                if (lastLabel.getText().startsWith("🤖 Assistent:")) {
-                    lastLabel.setText("🤖 Assistent: " + message);
-                } else {
-                    appendAssistantMessage(message);
-                }
-            } else {
-                appendAssistantMessage(message);
+            Node lastNode = messagesBox.getChildren().get(messagesBox.getChildren().size() - 1);
+            if (lastNode instanceof Label lastLabel && lastLabel.getText().startsWith("🤖 Assistent")) {
+                lastLabel.setText("🤖 Assistent\n" + message);
+                scrollToBottom();
+                return;
             }
-        } else {
-            appendAssistantMessage(message);
         }
-        scrollToBottom();
+        appendAssistantMessage(message);
     }
 
     private void appendSystemMessage(String message) {
         Label systemLabel = new Label("ℹ️ " + message);
-        systemLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
-        
+        systemLabel.setWrapText(true);
+        systemLabel.setStyle("-fx-text-fill: #6b7280; -fx-font-style: italic; -fx-padding: 4 2 4 2;");
+        addMessage(systemLabel);
+    }
+
+    private void addMessage(Node node) {
         Platform.runLater(() -> {
-            messagesBox.getChildren().add(systemLabel);
+            messagesBox.getChildren().add(node);
             scrollToBottom();
         });
     }
 
     private void scrollToBottom() {
         if (scrollPane != null) {
-            scrollPane.setVvalue(1.0);
+            Platform.runLater(() -> scrollPane.setVvalue(1.0));
         }
-    }
-
-    // --- Small utils ---
-
-    private String safeExtractTextResponse(String bodyStr) {
-        try {
-            JSONObject o = new JSONObject(bodyStr);
-            String r = o.optString("response", null);
-            if (r != null && !r.isBlank()) return r;
-            if (o.has("message")) return o.optString("message");
-            if (o.has("error"))   return "Error: " + o.optString("error");
-        } catch (Exception ignore) {}
-        return bodyStr != null && !bodyStr.isBlank() ? bodyStr : "(empty)";
     }
 
     private String tryParseAnyMessage(String bodyStr) {
         try {
             JSONObject o = new JSONObject(bodyStr);
             if (o.has("response")) return o.optString("response", "");
-            if (o.has("message"))  return o.optString("message", "");
-            if (o.has("error"))    return "Error: " + o.optString("error", "");
-        } catch (Exception ignore) {}
+            if (o.has("message")) return o.optString("message", "");
+            if (o.has("error")) return "Error: " + o.optString("error", "");
+        } catch (Exception ignored) {}
         return null;
     }
 
     private void cancelStreamRequest() {
-        if (streamRequest != null && !streamRequest.isDone()) {
-            try {
-                if (currentInputStream != null) {
-                    currentInputStream.close();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            if (streamReadingTask != null) {
-                streamReadingTask.cancel(true);
-            }
-            streamRequest.cancel(true);
-        }
+        try {
+            if (currentInputStream != null) currentInputStream.close();
+        } catch (Exception ignored) {}
+
+        if (streamReadingTask != null) streamReadingTask.cancel(true);
+        if (streamRequest != null && !streamRequest.isDone()) streamRequest.cancel(true);
     }
 
     private void cancelCompleteRequest() {
-        if (completeRequest != null && !completeRequest.isDone()) {
-            completeRequest.cancel(true);
-        }
+        if (completeRequest != null && !completeRequest.isDone()) completeRequest.cancel(true);
     }
 
     private void setButtonsRunning() {
@@ -493,6 +374,14 @@ public class Controller implements Initializable {
         textFieldPrompt.setDisable(false);
         streamRequest = null;
         completeRequest = null;
+        setThinking(false);
+    }
+
+    private void setThinking(boolean visible) {
+        if (thinkingLabel != null) {
+            thinkingLabel.setVisible(visible);
+            thinkingLabel.setManaged(visible);
+        }
     }
 
     private CompletableFuture<Void> ensureModelLoaded(String modelName) {
@@ -512,13 +401,13 @@ public class Controller implements Initializable {
                         for (int i = 0; i < models.length(); i++) {
                             String name = models.getJSONObject(i).optString("name", "");
                             String model = models.getJSONObject(i).optString("model", "");
-                            if (name.startsWith(modelName) || model.startsWith(modelName)) { 
-                                loaded = true; 
-                                break; 
+                            if (name.startsWith(modelName) || model.startsWith(modelName)) {
+                                loaded = true;
+                                break;
                             }
                         }
                     }
-                } catch (Exception ignore) {}
+                } catch (Exception ignored) {}
 
                 if (loaded) return CompletableFuture.completedFuture(null);
 
@@ -537,9 +426,7 @@ public class Controller implements Initializable {
                     .build();
 
                 return httpClient.sendAsync(preloadReq, HttpResponse.BodyHandlers.ofString())
-                        .thenAccept(r -> { 
-                            Platform.runLater(() -> appendSystemMessage("Model " + modelName + " carregat correctament."));
-                        });
+                    .thenAccept(r -> Platform.runLater(() -> appendSystemMessage("Model " + modelName + " carregat correctament.")));
             });
     }
 
@@ -572,33 +459,30 @@ public class Controller implements Initializable {
             base64Image = Base64.getEncoder().encodeToString(bytes);
             imageLoaded = true;
             selectedImageFile = file;
-            
-            // Mostrar preview de la imatge
-            if (imagePreviewBox != null && imagePreview != null) {
-                Image img = new Image(file.toURI().toString());
-                imagePreview.setImage(img);
-                imagePreviewBox.setVisible(true);
-                imagePreviewBox.setManaged(true);
-            }
-            
+
+            imagePreview.setImage(new Image(file.toURI().toString()));
+            setImagePreviewVisible(true);
             appendSystemMessage("Imatge carregada: " + file.getName());
             textFieldPrompt.setPromptText("Escriu una pregunta sobre la imatge...");
-            
         } catch (Exception e) {
-            e.printStackTrace();
             appendSystemMessage("Error en carregar la imatge: " + e.getMessage());
-            resetImageAttributes();
+            clearImage();
         }
     }
-    
+
     @FXML
     private void clearImage() {
         resetImageAttributes();
-        if (imagePreviewBox != null) {
-            imagePreviewBox.setVisible(false);
-            imagePreviewBox.setManaged(false);
-        }
+        if (imagePreview != null) imagePreview.setImage(null);
+        setImagePreviewVisible(false);
         textFieldPrompt.setPromptText("Escriu el teu missatge...");
+    }
+
+    private void setImagePreviewVisible(boolean visible) {
+        if (imagePreviewBox != null) {
+            imagePreviewBox.setVisible(visible);
+            imagePreviewBox.setManaged(visible);
+        }
     }
 
     @FXML
@@ -606,14 +490,5 @@ public class Controller implements Initializable {
         imageLoaded = false;
         base64Image = null;
         selectedImageFile = null;
-    }
-
-    @FXML
-    private void sendRequest(ActionEvent event) {
-        if (imageLoaded) {
-            callPicture(event);
-        } else {
-            callStream(event);
-        }
     }
 }

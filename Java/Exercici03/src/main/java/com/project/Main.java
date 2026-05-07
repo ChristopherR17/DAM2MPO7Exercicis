@@ -26,7 +26,7 @@ public class Main extends Application {
 
         // Icono opcional: solo se carga si existe en resources.
         try {
-            Image icon = new Image(getClass().getResourceAsStream("/icons/icon.png"));
+            Image icon = new Image(getClass().getResourceAsStream("/icons/ai_icon.png"));
             if (!icon.isError()) stage.getIcons().add(icon);
         } catch (Exception ignored) {}
     }
